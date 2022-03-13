@@ -1,0 +1,92 @@
+{
+	"name": "dataflow4",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "Emplo",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "dimemplo",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          NO_EMPLOYE as decimal(6,0),",
+				"          REND_COMPTE as decimal(6,0),",
+				"          NOM as string,",
+				"          PRENOM as string,",
+				"          FONCTION as string,",
+				"          TITRE as string,",
+				"          DATE_NAISSANCE as timestamp,",
+				"          DATE_EMBAUCHE as timestamp,",
+				"          SALAIRE as decimal(8,2),",
+				"          COMMISSION as decimal(8,2),",
+				"          Last_Mod as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     enableCdc: true,",
+				"     mode: 'read',",
+				"     skipInitialLoad: false,",
+				"     waterMarkColumn: 'Last_Mod',",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> source1",
+				"source1 alterRow(insertIf(1==1)) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          NO_EMPLOYE as decimal(6,0),",
+				"          REND_COMPTE as decimal(6,0),",
+				"          NOM as string,",
+				"          PRENOM as string,",
+				"          FONCTION as string,",
+				"          TITRE as string,",
+				"          DATE_NAISSANCE as timestamp,",
+				"          DATE_EMBAUCHE as timestamp,",
+				"          SALAIRE as decimal(8,2),",
+				"          COMMISSION as decimal(8,2),",
+				"          KeyId as long,",
+				"          StartDays as timestamp,",
+				"          EndDate as timestamp",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          NO_EMPLOYE,",
+				"          REND_COMPTE,",
+				"          NOM,",
+				"          PRENOM,",
+				"          FONCTION,",
+				"          TITRE,",
+				"          DATE_NAISSANCE,",
+				"          DATE_EMBAUCHE,",
+				"          SALAIRE,",
+				"          COMMISSION",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
