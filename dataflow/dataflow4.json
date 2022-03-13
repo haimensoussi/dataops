@@ -1,5 +1,5 @@
 {
-	"name": "dataflow2",
+	"name": "dataflow4",
 	"properties": {
 		"type": "MappingDataFlow",
 		"typeProperties": {
@@ -23,16 +23,10 @@
 			],
 			"transformations": [
 				{
-					"name": "Insert"
+					"name": "alterRow1"
 				},
 				{
 					"name": "surrogateKey1"
-				},
-				{
-					"name": "derivedColumn1"
-				},
-				{
-					"name": "select1"
 				}
 			],
 			"scriptLines": [
@@ -46,35 +40,21 @@
 				"          DATE_NAISSANCE as timestamp,",
 				"          DATE_EMBAUCHE as timestamp,",
 				"          SALAIRE as decimal(8,2),",
-				"          COMMISSION as decimal(8,2)",
+				"          COMMISSION as decimal(8,2),",
+				"          Last_Mod as timestamp",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
+				"     enableCdc: true,",
+				"     mode: 'read',",
+				"     skipInitialLoad: false,",
+				"     waterMarkColumn: 'Last_Mod',",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> source1",
-				"select1 alterRow(upsertIf(1==1)) ~> Insert",
+				"surrogateKey1 alterRow(upsertIf(1==1)) ~> alterRow1",
 				"source1 keyGenerate(output(KeyId as long),",
 				"     startAt: 1L) ~> surrogateKey1",
-				"surrogateKey1 derive(StartDays = DATE_EMBAUCHE,",
-				"          EndDate = DATE_EMBAUCHE-1) ~> derivedColumn1",
-				"derivedColumn1 select(mapColumn(",
-				"          NO_EMPLOYE,",
-				"          REND_COMPTE,",
-				"          NOM,",
-				"          PRENOM,",
-				"          FONCTION,",
-				"          TITRE,",
-				"          DATE_NAISSANCE,",
-				"          DATE_EMBAUCHE,",
-				"          SALAIRE,",
-				"          COMMISSION,",
-				"          KeyId,",
-				"          StartDays,",
-				"          EndDate",
-				"     ),",
-				"     skipDuplicateMapInputs: false,",
-				"     skipDuplicateMapOutputs: false) ~> select1",
-				"Insert sink(allowSchemaDrift: true,",
+				"alterRow1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
 				"          NO_EMPLOYE as decimal(6,0),",
@@ -95,6 +75,7 @@
 				"     insertable:false,",
 				"     updateable:false,",
 				"     upsertable:true,",
+				"     keys:['NO_EMPLOYE'],",
 				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
@@ -110,9 +91,7 @@
 				"          DATE_EMBAUCHE,",
 				"          SALAIRE,",
 				"          COMMISSION,",
-				"          KeyId,",
-				"          StartDays,",
-				"          EndDate",
+				"          KeyId",
 				"     )) ~> sink1"
 			]
 		}

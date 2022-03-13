@@ -7,7 +7,73 @@
 		},
 		"annotations": [],
 		"type": "AzureSqlTable",
-		"schema": [],
+		"schema": [
+			{
+				"name": "NO_EMPLOYE",
+				"type": "decimal",
+				"precision": 6,
+				"scale": 0
+			},
+			{
+				"name": "REND_COMPTE",
+				"type": "decimal",
+				"precision": 6,
+				"scale": 0
+			},
+			{
+				"name": "NOM",
+				"type": "nvarchar"
+			},
+			{
+				"name": "PRENOM",
+				"type": "nvarchar"
+			},
+			{
+				"name": "FONCTION",
+				"type": "nvarchar"
+			},
+			{
+				"name": "TITRE",
+				"type": "nvarchar"
+			},
+			{
+				"name": "DATE_NAISSANCE",
+				"type": "datetime2",
+				"scale": 7
+			},
+			{
+				"name": "DATE_EMBAUCHE",
+				"type": "datetime2",
+				"scale": 7
+			},
+			{
+				"name": "SALAIRE",
+				"type": "decimal",
+				"precision": 8,
+				"scale": 2
+			},
+			{
+				"name": "COMMISSION",
+				"type": "decimal",
+				"precision": 8,
+				"scale": 2
+			},
+			{
+				"name": "KeyId",
+				"type": "bigint",
+				"precision": 19
+			},
+			{
+				"name": "StartDays",
+				"type": "datetime2",
+				"scale": 7
+			},
+			{
+				"name": "EndDate",
+				"type": "datetime2",
+				"scale": 7
+			}
+		],
 		"typeProperties": {
 			"schema": "dbo",
 			"table": "DimEmplo"

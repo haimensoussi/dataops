@@ -1,0 +1,26 @@
+{
+	"name": "controldata",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "tablename",
+				"type": "nvarchar"
+			},
+			{
+				"name": "maxid",
+				"type": "int",
+				"precision": 10
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "controledata"
+		}
+	}
+}
