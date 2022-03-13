@@ -78,7 +78,6 @@
 				"     skipDuplicateMapOutputs: true,",
 				"     errorHandlingOption: 'stopOnFirstError',",
 				"     mapColumn(",
-				"          Clientkey = ClientKey,",
 				"          CODE_CLIENT,",
 				"          SOCIETE,",
 				"          ADRESSE,",
