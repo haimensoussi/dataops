@@ -21,6 +21,12 @@
 			{
 				"name": "DESCRIPTION",
 				"type": "varchar"
+			},
+			{
+				"name": "Last_Mod",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
 			}
 		],
 		"typeProperties": {
