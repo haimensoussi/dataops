@@ -1,0 +1,3025 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "myadfgetdata"
+		},
+		"AzureBlobStorage1_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'AzureBlobStorage1'"
+		},
+		"AzureSqlDatabase1_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'AzureSqlDatabase1'"
+		},
+		"linktofactdw_connectionString": {
+			"type": "secureString",
+			"metadata": "Secure string for 'connectionString' of 'linktofactdw'"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/DimClients')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "dimclients",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"clients": {},
+									"dimclients": {},
+									"sink1": {},
+									"sink2": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-03-12T16:27:45Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/dimclients')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimEmplo')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DimEmplo",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [
+							{
+								"activity": "maxidcontrol",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							},
+							{
+								"activity": "maxidemplo",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "dataflow2",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "maxidcontrol",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "select [maxid] as maxidcontrol from [dbo].[controledata] where [tablename]='Emplo'",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "controldata",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					},
+					{
+						"name": "maxidemplo",
+						"type": "Lookup",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "AzureSqlSource",
+								"sqlReaderQuery": "select max([NO_EMPLOYE]) as maxrefemplo from [dbo].[EMPLOYES]",
+								"queryTimeout": "02:00:00",
+								"partitionOption": "None"
+							},
+							"dataset": {
+								"referenceName": "Emplo",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-03-12T15:22:39Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/dataflow2')]",
+				"[concat(variables('factoryId'), '/datasets/controldata')]",
+				"[concat(variables('factoryId'), '/datasets/Emplo')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ImpDw')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ImpDimClients",
+						"type": "ExecutePipeline",
+						"dependsOn": [],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "DimClients",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": false,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "ImplDimProd",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "ImpDimClients",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "dimproducts",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "ImpDimEmplo",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "ImplDimProd",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "DimEmplo",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					},
+					{
+						"name": "ImpFact",
+						"type": "ExecutePipeline",
+						"dependsOn": [
+							{
+								"activity": "ImpDimEmplo",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"userProperties": [],
+						"typeProperties": {
+							"pipeline": {
+								"referenceName": "fact",
+								"type": "PipelineReference"
+							},
+							"waitOnCompletion": true,
+							"parameters": {}
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-03-12T18:42:43Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/pipelines/DimClients')]",
+				"[concat(variables('factoryId'), '/pipelines/dimproducts')]",
+				"[concat(variables('factoryId'), '/pipelines/DimEmplo')]",
+				"[concat(variables('factoryId'), '/pipelines/fact')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ImpliClients')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "ImplClients",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "ImpClients",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"clients": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/ImpClients')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dimproducts')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "dimproduct",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "dataflow3",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"products": {},
+									"categories": {},
+									"Fournisseurs": {},
+									"dimproduct": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-03-12T17:54:19Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/dataflow3')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/fact')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "fact",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "commande",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"commande": {},
+									"detailcomm": {},
+									"dimclients": {},
+									"dimemplo": {},
+									"dimproducts": {},
+									"factdw": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-03-12T18:33:23Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/commande')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/implproduct')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "productimp",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "dataflow5",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"product": {},
+									"cat": {},
+									"Fourn": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/dataflow5')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/loademplo')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "LoadEmplo",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "dataflow4",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/dataflow4')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/pipeline1')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Copy data1",
+						"type": "Copy",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "7.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "DelimitedTextSource",
+								"storeSettings": {
+									"type": "AzureBlobStorageReadSettings",
+									"recursive": true,
+									"modifiedDatetimeStart": {
+										"value": "@adddays(utcnow(),-2)",
+										"type": "Expression"
+									},
+									"modifiedDatetimeEnd": {
+										"value": "@utcnow()",
+										"type": "Expression"
+									},
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "DelimitedTextReadSettings"
+								}
+							},
+							"sink": {
+								"type": "DelimitedTextSink",
+								"storeSettings": {
+									"type": "AzureBlobStorageWriteSettings"
+								},
+								"formatSettings": {
+									"type": "DelimitedTextWriteSettings",
+									"quoteAllText": true,
+									"fileExtension": ".txt"
+								}
+							},
+							"enableStaging": false,
+							"translator": {
+								"type": "TabularTranslator",
+								"typeConversion": true,
+								"typeConversionSettings": {
+									"allowDataTruncation": true,
+									"treatBooleanAsNumber": false
+								}
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DelimitedText1",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DelimitedText2",
+								"type": "DatasetReference",
+								"parameters": {}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-03-11T20:35:18Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DelimitedText1')]",
+				"[concat(variables('factoryId'), '/datasets/DelimitedText2')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/sqldata')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "SQL Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "SQLdataflow",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-03-11T21:33:48Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/SQLdataflow')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/upsert')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "Data flow1",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "1.00:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "dataflow1",
+								"type": "DataFlowReference",
+								"parameters": {},
+								"datasetParameters": {
+									"source1": {},
+									"source2": {},
+									"sink1": {}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {},
+					"cancelAfter": {}
+				},
+				"annotations": [],
+				"lastPublishTime": "2022-03-11T19:51:25Z"
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/dataflow1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureSqlTable1')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "Id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Sales",
+						"type": "int",
+						"precision": 10
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "File_1"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureSqlTable2')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "tablename",
+						"type": "nvarchar"
+					},
+					{
+						"name": "maxid",
+						"type": "int",
+						"precision": 10
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "controledata"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DIMPROD')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "linktofactdw",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "dmproducts"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/linktofactdw')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DelimitedText1')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureBlobStorage1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "File_1.csv",
+						"container": "input"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureBlobStorage1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DelimitedText2')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureBlobStorage1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobStorageLocation",
+						"fileName": "File_1.csv",
+						"container": "output"
+					},
+					"columnDelimiter": ",",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": [
+					{
+						"name": "Id",
+						"type": "String"
+					},
+					{
+						"name": "Sales",
+						"type": "String"
+					}
+				]
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureBlobStorage1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DimProducts')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "linktofactdw",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "DimProducts"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/linktofactdw')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Distination')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "Id",
+						"type": "int",
+						"precision": 10
+					},
+					{
+						"name": "Sales",
+						"type": "int",
+						"precision": 10
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "Sales"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Emplo')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "NO_EMPLOYE",
+						"type": "decimal",
+						"precision": 6,
+						"scale": 0
+					},
+					{
+						"name": "REND_COMPTE",
+						"type": "decimal",
+						"precision": 6,
+						"scale": 0
+					},
+					{
+						"name": "NOM",
+						"type": "nvarchar"
+					},
+					{
+						"name": "PRENOM",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FONCTION",
+						"type": "varchar"
+					},
+					{
+						"name": "TITRE",
+						"type": "varchar"
+					},
+					{
+						"name": "DATE_NAISSANCE",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "DATE_EMBAUCHE",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "SALAIRE",
+						"type": "decimal",
+						"precision": 8,
+						"scale": 2
+					},
+					{
+						"name": "COMMISSION",
+						"type": "decimal",
+						"precision": 8,
+						"scale": 2
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "EMPLOYES"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Fournisseurs')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "NO_FOURNISSEUR",
+						"type": "decimal",
+						"precision": 6,
+						"scale": 0
+					},
+					{
+						"name": "SOCIETE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ADRESSE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "VILLE",
+						"type": "varchar"
+					},
+					{
+						"name": "CODE_POSTAL",
+						"type": "varchar"
+					},
+					{
+						"name": "PAYS",
+						"type": "varchar"
+					},
+					{
+						"name": "TELEPHONE",
+						"type": "varchar"
+					},
+					{
+						"name": "FAX",
+						"type": "varchar"
+					},
+					{
+						"name": "Last_Mod",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "FOURNISSEURS"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/categories')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "CODE_CATEGORIE",
+						"type": "decimal",
+						"precision": 6,
+						"scale": 0
+					},
+					{
+						"name": "NOM_CATEGORIE",
+						"type": "varchar"
+					},
+					{
+						"name": "DESCRIPTION",
+						"type": "varchar"
+					},
+					{
+						"name": "Last_Mod",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "CATEGORIES"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/clients')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "CODE_CLIENT",
+						"type": "char"
+					},
+					{
+						"name": "SOCIETE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ADRESSE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "VILLE",
+						"type": "varchar"
+					},
+					{
+						"name": "CODE_POSTAL",
+						"type": "varchar"
+					},
+					{
+						"name": "PAYS",
+						"type": "varchar"
+					},
+					{
+						"name": "TELEPHONE",
+						"type": "varchar"
+					},
+					{
+						"name": "FAX",
+						"type": "varchar"
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "CLIENTS"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/commande')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "NO_COMMANDE",
+						"type": "decimal",
+						"precision": 6,
+						"scale": 0
+					},
+					{
+						"name": "CODE_CLIENT",
+						"type": "char"
+					},
+					{
+						"name": "NO_EMPLOYE",
+						"type": "decimal",
+						"precision": 6,
+						"scale": 0
+					},
+					{
+						"name": "DATE_COMMANDE",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "DATE_ENVOI",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "PORT",
+						"type": "decimal",
+						"precision": 8,
+						"scale": 2
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "COMMANDES"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/controldata')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "tablename",
+						"type": "nvarchar"
+					},
+					{
+						"name": "maxid",
+						"type": "int",
+						"precision": 10
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "controledata"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/detailcomm')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "NO_COMMANDE",
+						"type": "decimal",
+						"precision": 6,
+						"scale": 0
+					},
+					{
+						"name": "REF_PRODUIT",
+						"type": "decimal",
+						"precision": 6,
+						"scale": 0
+					},
+					{
+						"name": "PRIX_UNITAIRE",
+						"type": "decimal",
+						"precision": 8,
+						"scale": 2
+					},
+					{
+						"name": "QUANTITE",
+						"type": "decimal",
+						"precision": 5,
+						"scale": 0
+					},
+					{
+						"name": "REMISE",
+						"type": "float",
+						"precision": 15
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "DETAILS_COMMANDES"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dimclients')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "linktofactdw",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "Clientkey",
+						"type": "bigint",
+						"precision": 19
+					},
+					{
+						"name": "CODE_CLIENT",
+						"type": "char"
+					},
+					{
+						"name": "SOCIETE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "ADRESSE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "VILLE",
+						"type": "varchar"
+					},
+					{
+						"name": "CODE_POSTAL",
+						"type": "varchar"
+					},
+					{
+						"name": "PAYS",
+						"type": "varchar"
+					},
+					{
+						"name": "TELEPHONE",
+						"type": "varchar"
+					},
+					{
+						"name": "FAX",
+						"type": "varchar"
+					},
+					{
+						"name": "StartDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					},
+					{
+						"name": "EndDate",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "CLIENTS"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/linktofactdw')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dimemplo')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "linktofactdw",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "NO_EMPLOYE",
+						"type": "decimal",
+						"precision": 6,
+						"scale": 0
+					},
+					{
+						"name": "REND_COMPTE",
+						"type": "decimal",
+						"precision": 6,
+						"scale": 0
+					},
+					{
+						"name": "NOM",
+						"type": "nvarchar"
+					},
+					{
+						"name": "PRENOM",
+						"type": "nvarchar"
+					},
+					{
+						"name": "FONCTION",
+						"type": "nvarchar"
+					},
+					{
+						"name": "TITRE",
+						"type": "nvarchar"
+					},
+					{
+						"name": "DATE_NAISSANCE",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "DATE_EMBAUCHE",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "SALAIRE",
+						"type": "decimal",
+						"precision": 8,
+						"scale": 2
+					},
+					{
+						"name": "COMMISSION",
+						"type": "decimal",
+						"precision": 8,
+						"scale": 2
+					},
+					{
+						"name": "KeyId",
+						"type": "bigint",
+						"precision": 19
+					},
+					{
+						"name": "StartDays",
+						"type": "datetime2",
+						"scale": 7
+					},
+					{
+						"name": "EndDate",
+						"type": "datetime2",
+						"scale": 7
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "DimEmplo"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/linktofactdw')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/factdw')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "linktofactdw",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "factdw"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/linktofactdw')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/impprod')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "linktofactdw",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "improducts"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/linktofactdw')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/products')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "AzureSqlDatabase1",
+					"type": "LinkedServiceReference"
+				},
+				"annotations": [],
+				"type": "AzureSqlTable",
+				"schema": [
+					{
+						"name": "REF_PRODUIT",
+						"type": "decimal",
+						"precision": 6,
+						"scale": 0
+					},
+					{
+						"name": "NOM_PRODUIT",
+						"type": "nvarchar"
+					},
+					{
+						"name": "NO_FOURNISSEUR",
+						"type": "decimal",
+						"precision": 6,
+						"scale": 0
+					},
+					{
+						"name": "CODE_CATEGORIE",
+						"type": "decimal",
+						"precision": 6,
+						"scale": 0
+					},
+					{
+						"name": "QUANTITE",
+						"type": "varchar"
+					},
+					{
+						"name": "PRIX_UNITAIRE",
+						"type": "decimal",
+						"precision": 8,
+						"scale": 2
+					},
+					{
+						"name": "UNITES_STOCK",
+						"type": "decimal",
+						"precision": 5,
+						"scale": 0
+					},
+					{
+						"name": "UNITES_COMMANDEES",
+						"type": "decimal",
+						"precision": 5,
+						"scale": 0
+					},
+					{
+						"name": "INDISPONIBLE",
+						"type": "decimal",
+						"precision": 1,
+						"scale": 0
+					},
+					{
+						"name": "Last_Mod",
+						"type": "datetime",
+						"precision": 23,
+						"scale": 3
+					}
+				],
+				"typeProperties": {
+					"schema": "dbo",
+					"table": "PRODUITS"
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/AzureSqlDatabase1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureBlobStorage1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"connectionString": "[parameters('AzureBlobStorage1_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/AzureSqlDatabase1')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('AzureSqlDatabase1_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/linktofactdw')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureSqlDatabase",
+				"typeProperties": {
+					"connectionString": "[parameters('linktofactdw_connectionString')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/ImpClients')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "clients",
+								"type": "DatasetReference"
+							},
+							"name": "clients"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "dimclients",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "surrogateKey1"
+						},
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          CODE_CLIENT as string,",
+						"          SOCIETE as string,",
+						"          ADRESSE as string,",
+						"          VILLE as string,",
+						"          CODE_POSTAL as string,",
+						"          PAYS as string,",
+						"          TELEPHONE as string,",
+						"          FAX as string,",
+						"          RefClient as integer,",
+						"          Last_Mod as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     enableCdc: true,",
+						"     mode: 'read',",
+						"     skipInitialLoad: false,",
+						"     waterMarkColumn: 'Last_Mod',",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> clients",
+						"clients keyGenerate(output(ClientKey as long),",
+						"     startAt: 1L) ~> surrogateKey1",
+						"surrogateKey1 alterRow(upsertIf(1==1)) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          Clientkey as long,",
+						"          CODE_CLIENT as string,",
+						"          SOCIETE as string,",
+						"          ADRESSE as string,",
+						"          VILLE as string,",
+						"          CODE_POSTAL as string,",
+						"          PAYS as string,",
+						"          TELEPHONE as string,",
+						"          FAX as string,",
+						"          StartDate as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['CODE_CLIENT'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          CODE_CLIENT,",
+						"          SOCIETE,",
+						"          ADRESSE,",
+						"          VILLE,",
+						"          CODE_POSTAL,",
+						"          PAYS,",
+						"          TELEPHONE,",
+						"          FAX",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/clients')]",
+				"[concat(variables('factoryId'), '/datasets/dimclients')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/SQLdataflow')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DelimitedText1",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "AzureSqlTable1",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Id as integer,",
+						"          Sales as integer",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source1",
+						"source1 alterRow(upsertIf(1==1)) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          Id as integer,",
+						"          Sales as integer",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['Id'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          Id,",
+						"          Sales",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DelimitedText1')]",
+				"[concat(variables('factoryId'), '/datasets/AzureSqlTable1')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/commande')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "commande",
+								"type": "DatasetReference"
+							},
+							"name": "commande"
+						},
+						{
+							"dataset": {
+								"referenceName": "detailcomm",
+								"type": "DatasetReference"
+							},
+							"name": "detailcomm"
+						},
+						{
+							"dataset": {
+								"referenceName": "dimclients",
+								"type": "DatasetReference"
+							},
+							"name": "dimclients"
+						},
+						{
+							"dataset": {
+								"referenceName": "dimemplo",
+								"type": "DatasetReference"
+							},
+							"name": "dimemplo"
+						},
+						{
+							"dataset": {
+								"referenceName": "DimProducts",
+								"type": "DatasetReference"
+							},
+							"name": "dimproducts"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "factdw",
+								"type": "DatasetReference"
+							},
+							"name": "factdw"
+						}
+					],
+					"transformations": [
+						{
+							"name": "join1"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "joinclients"
+						},
+						{
+							"name": "select2"
+						},
+						{
+							"name": "joinemplo"
+						},
+						{
+							"name": "select3"
+						},
+						{
+							"name": "joinproducts"
+						},
+						{
+							"name": "select4"
+						},
+						{
+							"name": "alterRow1"
+						},
+						{
+							"name": "surrogateKey1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          NO_COMMANDE as decimal(6,0),",
+						"          CODE_CLIENT as string,",
+						"          NO_EMPLOYE as decimal(6,0),",
+						"          DATE_COMMANDE as timestamp,",
+						"          DATE_ENVOI as timestamp,",
+						"          PORT as decimal(8,2)",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> commande",
+						"source(output(",
+						"          NO_COMMANDE as decimal(6,0),",
+						"          REF_PRODUIT as decimal(6,0),",
+						"          PRIX_UNITAIRE as decimal(8,2),",
+						"          QUANTITE as decimal(5,0),",
+						"          REMISE as double",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> detailcomm",
+						"source(output(",
+						"          Clientkey as long,",
+						"          CODE_CLIENT as string,",
+						"          SOCIETE as string,",
+						"          ADRESSE as string,",
+						"          VILLE as string,",
+						"          CODE_POSTAL as string,",
+						"          PAYS as string,",
+						"          TELEPHONE as string,",
+						"          FAX as string,",
+						"          StartDate as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> dimclients",
+						"source(output(",
+						"          NO_EMPLOYE as decimal(6,0),",
+						"          REND_COMPTE as decimal(6,0),",
+						"          NOM as string,",
+						"          PRENOM as string,",
+						"          FONCTION as string,",
+						"          TITRE as string,",
+						"          DATE_NAISSANCE as timestamp,",
+						"          DATE_EMBAUCHE as timestamp,",
+						"          SALAIRE as decimal(8,2),",
+						"          COMMISSION as decimal(8,2),",
+						"          KeyId as long,",
+						"          StartDays as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> dimemplo",
+						"source(output(",
+						"          REF_PRODUIT as decimal(6,0),",
+						"          NOM_PRODUIT as string,",
+						"          QUANTITE as string,",
+						"          PRIX_UNITAIRE as decimal(8,2),",
+						"          UNITES_STOCK as decimal(5,0),",
+						"          UNITES_COMMANDEES as decimal(5,0),",
+						"          CODE_CATEGORIE as decimal(6,0),",
+						"          NOM_CATEGORIE as string,",
+						"          NO_FOURNISSEUR as decimal(6,0),",
+						"          SOCIETE_FOURNISSEUR as string,",
+						"          PAYS_FOURNISSEUR as string,",
+						"          ProKey as long",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> dimproducts",
+						"commande, detailcomm join(commande@NO_COMMANDE == detailcomm@NO_COMMANDE,",
+						"     joinType:'inner',",
+						"     broadcast: 'auto')~> join1",
+						"join1 select(mapColumn(",
+						"          NO_COMMANDE = commande@NO_COMMANDE,",
+						"          CODE_CLIENT,",
+						"          NO_EMPLOYE,",
+						"          DATE_COMMANDE,",
+						"          REF_PRODUIT,",
+						"          PRIX_UNITAIRE,",
+						"          QUANTITE",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1, dimclients join(select1@CODE_CLIENT == dimclients@CODE_CLIENT,",
+						"     joinType:'inner',",
+						"     broadcast: 'auto')~> joinclients",
+						"joinclients select(mapColumn(",
+						"          NO_COMMANDE,",
+						"          NO_EMPLOYE,",
+						"          DATE_COMMANDE,",
+						"          REF_PRODUIT,",
+						"          PRIX_UNITAIRE,",
+						"          QUANTITE,",
+						"          Clientkey",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"select2, dimemplo join(select2@NO_EMPLOYE == dimemplo@NO_EMPLOYE,",
+						"     joinType:'inner',",
+						"     broadcast: 'auto')~> joinemplo",
+						"joinemplo select(mapColumn(",
+						"          NO_COMMANDE,",
+						"          DATE_COMMANDE,",
+						"          REF_PRODUIT,",
+						"          PRIX_UNITAIRE,",
+						"          QUANTITE,",
+						"          Clientkey,",
+						"          NO_EMPLOYE = dimemplo@NO_EMPLOYE,",
+						"          EmpKey = KeyId",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select3",
+						"select3, dimproducts join(select3@REF_PRODUIT == dimproducts@REF_PRODUIT,",
+						"     joinType:'inner',",
+						"     broadcast: 'auto')~> joinproducts",
+						"joinproducts select(mapColumn(",
+						"          NO_COMMANDE,",
+						"          DATE_COMMANDE,",
+						"          PRIX_UNITAIRE = select3@PRIX_UNITAIRE,",
+						"          QUANTITE = select3@QUANTITE,",
+						"          Clientkey,",
+						"          EmpKey,",
+						"          ProKey",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select4",
+						"select4 alterRow(upsertIf(1==1)) ~> alterRow1",
+						"alterRow1 keyGenerate(output(OrderId as long),",
+						"     startAt: 1L) ~> surrogateKey1",
+						"surrogateKey1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['OrderId'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          NO_COMMANDE,",
+						"          DATE_COMMANDE,",
+						"          PRIX_UNITAIRE,",
+						"          QUANTITE,",
+						"          Clientkey,",
+						"          EmpKey,",
+						"          ProKey,",
+						"          OrderId",
+						"     )) ~> factdw"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/commande')]",
+				"[concat(variables('factoryId'), '/datasets/detailcomm')]",
+				"[concat(variables('factoryId'), '/datasets/dimclients')]",
+				"[concat(variables('factoryId'), '/datasets/dimemplo')]",
+				"[concat(variables('factoryId'), '/datasets/DimProducts')]",
+				"[concat(variables('factoryId'), '/datasets/factdw')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dataflow1')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DelimitedText1",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						},
+						{
+							"dataset": {
+								"referenceName": "DelimitedText2",
+								"type": "DatasetReference"
+							},
+							"name": "source2"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DelimitedText2",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          Id as short,",
+						"          Sales as short",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source1",
+						"source(output(",
+						"          Id as short,",
+						"          Sales as short",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> source2",
+						"source1 alterRow(upsertIf(1==1)) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          Id as string,",
+						"          Sales as string",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     mapColumn(",
+						"          Id,",
+						"          Sales",
+						"     ),",
+						"     partitionBy('key',",
+						"          0,",
+						"          Id",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DelimitedText1')]",
+				"[concat(variables('factoryId'), '/datasets/DelimitedText2')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dataflow2')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "Emplo",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "dimemplo",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "Insert"
+						},
+						{
+							"name": "surrogateKey1"
+						},
+						{
+							"name": "derivedColumn1"
+						},
+						{
+							"name": "select1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          NO_EMPLOYE as decimal(6,0),",
+						"          REND_COMPTE as decimal(6,0),",
+						"          NOM as string,",
+						"          PRENOM as string,",
+						"          FONCTION as string,",
+						"          TITRE as string,",
+						"          DATE_NAISSANCE as timestamp,",
+						"          DATE_EMBAUCHE as timestamp,",
+						"          SALAIRE as decimal(8,2),",
+						"          COMMISSION as decimal(8,2)",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> source1",
+						"select1 alterRow(upsertIf(1==1)) ~> Insert",
+						"source1 keyGenerate(output(KeyId as long),",
+						"     startAt: 1L) ~> surrogateKey1",
+						"surrogateKey1 derive(StartDays = DATE_EMBAUCHE,",
+						"          EndDate = DATE_EMBAUCHE-1) ~> derivedColumn1",
+						"derivedColumn1 select(mapColumn(",
+						"          NO_EMPLOYE,",
+						"          REND_COMPTE,",
+						"          NOM,",
+						"          PRENOM,",
+						"          FONCTION,",
+						"          TITRE,",
+						"          DATE_NAISSANCE,",
+						"          DATE_EMBAUCHE,",
+						"          SALAIRE,",
+						"          COMMISSION,",
+						"          KeyId,",
+						"          StartDays,",
+						"          EndDate",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> select1",
+						"Insert sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          NO_EMPLOYE as decimal(6,0),",
+						"          REND_COMPTE as decimal(6,0),",
+						"          NOM as string,",
+						"          PRENOM as string,",
+						"          FONCTION as string,",
+						"          TITRE as string,",
+						"          DATE_NAISSANCE as timestamp,",
+						"          DATE_EMBAUCHE as timestamp,",
+						"          SALAIRE as decimal(8,2),",
+						"          COMMISSION as decimal(8,2),",
+						"          KeyId as long,",
+						"          StartDays as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['NO_EMPLOYE'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          NO_EMPLOYE,",
+						"          REND_COMPTE,",
+						"          NOM,",
+						"          PRENOM,",
+						"          FONCTION,",
+						"          TITRE,",
+						"          DATE_NAISSANCE,",
+						"          DATE_EMBAUCHE,",
+						"          SALAIRE,",
+						"          COMMISSION,",
+						"          KeyId,",
+						"          StartDays,",
+						"          EndDate",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/Emplo')]",
+				"[concat(variables('factoryId'), '/datasets/dimemplo')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dataflow3')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "products",
+								"type": "DatasetReference"
+							},
+							"name": "products"
+						},
+						{
+							"dataset": {
+								"referenceName": "categories",
+								"type": "DatasetReference"
+							},
+							"name": "categories"
+						},
+						{
+							"dataset": {
+								"referenceName": "Fournisseurs",
+								"type": "DatasetReference"
+							},
+							"name": "Fournisseurs"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DimProducts",
+								"type": "DatasetReference"
+							},
+							"name": "dimproduct"
+						}
+					],
+					"transformations": [
+						{
+							"name": "join1"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "join2"
+						},
+						{
+							"name": "select2"
+						},
+						{
+							"name": "alterRow1"
+						},
+						{
+							"name": "surrogateKey1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          REF_PRODUIT as decimal(6,0),",
+						"          NOM_PRODUIT as string,",
+						"          NO_FOURNISSEUR as decimal(6,0),",
+						"          CODE_CATEGORIE as decimal(6,0),",
+						"          QUANTITE as string,",
+						"          PRIX_UNITAIRE as decimal(8,2),",
+						"          UNITES_STOCK as decimal(5,0),",
+						"          UNITES_COMMANDEES as decimal(5,0),",
+						"          INDISPONIBLE as decimal(1,0)",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> products",
+						"source(output(",
+						"          CODE_CATEGORIE as decimal(6,0),",
+						"          NOM_CATEGORIE as string,",
+						"          DESCRIPTION as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> categories",
+						"source(output(",
+						"          NO_FOURNISSEUR as decimal(6,0),",
+						"          SOCIETE as string,",
+						"          ADRESSE as string,",
+						"          VILLE as string,",
+						"          CODE_POSTAL as string,",
+						"          PAYS as string,",
+						"          TELEPHONE as string,",
+						"          FAX as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> Fournisseurs",
+						"products, categories join(products@CODE_CATEGORIE == categories@CODE_CATEGORIE,",
+						"     joinType:'inner',",
+						"     broadcast: 'auto')~> join1",
+						"join1 select(mapColumn(",
+						"          REF_PRODUIT,",
+						"          NOM_PRODUIT,",
+						"          NO_FOURNISSEUR,",
+						"          QUANTITE,",
+						"          PRIX_UNITAIRE,",
+						"          UNITES_STOCK,",
+						"          UNITES_COMMANDEES,",
+						"          CODE_CATEGORIE = categories@CODE_CATEGORIE,",
+						"          NOM_CATEGORIE",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1, Fournisseurs join(select1@NO_FOURNISSEUR == Fournisseurs@NO_FOURNISSEUR,",
+						"     joinType:'inner',",
+						"     broadcast: 'auto')~> join2",
+						"join2 select(mapColumn(",
+						"          REF_PRODUIT,",
+						"          NOM_PRODUIT,",
+						"          QUANTITE,",
+						"          PRIX_UNITAIRE,",
+						"          UNITES_STOCK,",
+						"          UNITES_COMMANDEES,",
+						"          CODE_CATEGORIE,",
+						"          NOM_CATEGORIE,",
+						"          NO_FOURNISSEUR = Fournisseurs@NO_FOURNISSEUR,",
+						"          SOCIETE_FOURNISSEUR = SOCIETE,",
+						"          PAYS_FOURNISSEUR = PAYS",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"surrogateKey1 alterRow(upsertIf(1==1)) ~> alterRow1",
+						"select2 keyGenerate(output(ProKey as long),",
+						"     startAt: 1L) ~> surrogateKey1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['REF_PRODUIT'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          REF_PRODUIT,",
+						"          NOM_PRODUIT,",
+						"          QUANTITE,",
+						"          PRIX_UNITAIRE,",
+						"          UNITES_STOCK,",
+						"          UNITES_COMMANDEES,",
+						"          CODE_CATEGORIE,",
+						"          NOM_CATEGORIE,",
+						"          NO_FOURNISSEUR,",
+						"          SOCIETE_FOURNISSEUR,",
+						"          PAYS_FOURNISSEUR,",
+						"          ProKey",
+						"     )) ~> dimproduct"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/products')]",
+				"[concat(variables('factoryId'), '/datasets/categories')]",
+				"[concat(variables('factoryId'), '/datasets/Fournisseurs')]",
+				"[concat(variables('factoryId'), '/datasets/DimProducts')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dataflow4')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "Emplo",
+								"type": "DatasetReference"
+							},
+							"name": "source1"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "dimemplo",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "alterRow1"
+						},
+						{
+							"name": "surrogateKey1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          NO_EMPLOYE as decimal(6,0),",
+						"          REND_COMPTE as decimal(6,0),",
+						"          NOM as string,",
+						"          PRENOM as string,",
+						"          FONCTION as string,",
+						"          TITRE as string,",
+						"          DATE_NAISSANCE as timestamp,",
+						"          DATE_EMBAUCHE as timestamp,",
+						"          SALAIRE as decimal(8,2),",
+						"          COMMISSION as decimal(8,2),",
+						"          Last_Mod as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     enableCdc: true,",
+						"     mode: 'read',",
+						"     skipInitialLoad: false,",
+						"     waterMarkColumn: 'Last_Mod',",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> source1",
+						"surrogateKey1 alterRow(upsertIf(1==1)) ~> alterRow1",
+						"source1 keyGenerate(output(KeyId as long),",
+						"     startAt: 1L) ~> surrogateKey1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          NO_EMPLOYE as decimal(6,0),",
+						"          REND_COMPTE as decimal(6,0),",
+						"          NOM as string,",
+						"          PRENOM as string,",
+						"          FONCTION as string,",
+						"          TITRE as string,",
+						"          DATE_NAISSANCE as timestamp,",
+						"          DATE_EMBAUCHE as timestamp,",
+						"          SALAIRE as decimal(8,2),",
+						"          COMMISSION as decimal(8,2),",
+						"          KeyId as long,",
+						"          StartDays as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['NO_EMPLOYE'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          NO_EMPLOYE,",
+						"          REND_COMPTE,",
+						"          NOM,",
+						"          PRENOM,",
+						"          FONCTION,",
+						"          TITRE,",
+						"          DATE_NAISSANCE,",
+						"          DATE_EMBAUCHE,",
+						"          SALAIRE,",
+						"          COMMISSION,",
+						"          KeyId",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/Emplo')]",
+				"[concat(variables('factoryId'), '/datasets/dimemplo')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dataflow5')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "products",
+								"type": "DatasetReference"
+							},
+							"name": "product"
+						},
+						{
+							"dataset": {
+								"referenceName": "categories",
+								"type": "DatasetReference"
+							},
+							"name": "cat"
+						},
+						{
+							"dataset": {
+								"referenceName": "Fournisseurs",
+								"type": "DatasetReference"
+							},
+							"name": "Fourn"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "impprod",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "join1"
+						},
+						{
+							"name": "join2"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "surrogateKey1"
+						},
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          REF_PRODUIT as decimal(6,0),",
+						"          NOM_PRODUIT as string,",
+						"          NO_FOURNISSEUR as decimal(6,0),",
+						"          CODE_CATEGORIE as decimal(6,0),",
+						"          QUANTITE as string,",
+						"          PRIX_UNITAIRE as decimal(8,2),",
+						"          UNITES_STOCK as decimal(5,0),",
+						"          UNITES_COMMANDEES as decimal(5,0),",
+						"          INDISPONIBLE as decimal(1,0),",
+						"          Last_Mod as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     waterMarkColumn: 'Last_Mod',",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> product",
+						"source(output(",
+						"          CODE_CATEGORIE as decimal(6,0),",
+						"          NOM_CATEGORIE as string,",
+						"          DESCRIPTION as string,",
+						"          Last_Mod as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     waterMarkColumn: 'Last_Mod',",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> cat",
+						"source(output(",
+						"          NO_FOURNISSEUR as decimal(6,0),",
+						"          SOCIETE as string,",
+						"          ADRESSE as string,",
+						"          VILLE as string,",
+						"          CODE_POSTAL as string,",
+						"          PAYS as string,",
+						"          TELEPHONE as string,",
+						"          FAX as string,",
+						"          Last_Mod as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     waterMarkColumn: 'Last_Mod',",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> Fourn",
+						"product, cat join(product@CODE_CATEGORIE == cat@CODE_CATEGORIE,",
+						"     joinType:'inner',",
+						"     broadcast: 'auto')~> join1",
+						"join1, Fourn join(product@NO_FOURNISSEUR == Fourn@NO_FOURNISSEUR,",
+						"     joinType:'inner',",
+						"     broadcast: 'auto')~> join2",
+						"join2 select(mapColumn(",
+						"          REF_PRODUIT,",
+						"          NOM_PRODUIT,",
+						"          NO_FOURNISSEUR = product@NO_FOURNISSEUR,",
+						"          CODE_CATEGORIE = product@CODE_CATEGORIE,",
+						"          QUANTITE,",
+						"          PRIX_UNITAIRE,",
+						"          UNITES_STOCK,",
+						"          UNITES_COMMANDEES,",
+						"          NOM_CATEGORIE,",
+						"          NO_FOURNISSEUR = Fourn@NO_FOURNISSEUR,",
+						"          SOCIETE_FOURNISSEUR = SOCIETE,",
+						"          PAYS_FOURNISSEUR = PAYS",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1 keyGenerate(output(ProKey as long),",
+						"     startAt: 1L) ~> surrogateKey1",
+						"surrogateKey1 alterRow(upsertIf(1==1)) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['REF_PRODUIT'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          REF_PRODUIT,",
+						"          NOM_PRODUIT,",
+						"          NO_FOURNISSEUR,",
+						"          CODE_CATEGORIE,",
+						"          QUANTITE,",
+						"          PRIX_UNITAIRE,",
+						"          UNITES_STOCK,",
+						"          UNITES_COMMANDEES,",
+						"          NOM_CATEGORIE,",
+						"          SOCIETE_FOURNISSEUR,",
+						"          PAYS_FOURNISSEUR,",
+						"          ProKey",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/products')]",
+				"[concat(variables('factoryId'), '/datasets/categories')]",
+				"[concat(variables('factoryId'), '/datasets/Fournisseurs')]",
+				"[concat(variables('factoryId'), '/datasets/impprod')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/dimclients')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "clients",
+								"type": "DatasetReference"
+							},
+							"name": "clients"
+						},
+						{
+							"dataset": {
+								"referenceName": "dimclients",
+								"type": "DatasetReference"
+							},
+							"name": "dimclients"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "dimclients",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						},
+						{
+							"dataset": {
+								"referenceName": "dimclients",
+								"type": "DatasetReference"
+							},
+							"name": "sink2"
+						}
+					],
+					"transformations": [
+						{
+							"name": "notexists"
+						},
+						{
+							"name": "exists"
+						},
+						{
+							"name": "alterRow1"
+						},
+						{
+							"name": "surrogateKey1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          CODE_CLIENT as string,",
+						"          SOCIETE as string,",
+						"          ADRESSE as string,",
+						"          VILLE as string,",
+						"          CODE_POSTAL as string,",
+						"          PAYS as string,",
+						"          TELEPHONE as string,",
+						"          FAX as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> clients",
+						"source(output(",
+						"          Clientkey as long,",
+						"          CODE_CLIENT as string,",
+						"          SOCIETE as string,",
+						"          ADRESSE as string,",
+						"          VILLE as string,",
+						"          CODE_POSTAL as string,",
+						"          PAYS as string,",
+						"          TELEPHONE as string,",
+						"          FAX as string,",
+						"          StartDate as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> dimclients",
+						"clients, dimclients exists(clients@CODE_CLIENT == dimclients@CODE_CLIENT,",
+						"     negate:true,",
+						"     broadcast: 'auto')~> notexists",
+						"surrogateKey1, dimclients exists(clients@CODE_CLIENT == dimclients@CODE_CLIENT,",
+						"     negate:false,",
+						"     broadcast: 'auto')~> exists",
+						"exists alterRow(updateIf(1==1)) ~> alterRow1",
+						"clients keyGenerate(output(ClientKey as long),",
+						"     startAt: 1L) ~> surrogateKey1",
+						"notexists sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          Clientkey as long,",
+						"          CODE_CLIENT as string,",
+						"          SOCIETE as string,",
+						"          ADRESSE as string,",
+						"          VILLE as string,",
+						"          CODE_POSTAL as string,",
+						"          PAYS as string,",
+						"          TELEPHONE as string,",
+						"          FAX as string,",
+						"          StartDate as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:true,",
+						"     updateable:false,",
+						"     upsertable:false,",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          CODE_CLIENT,",
+						"          SOCIETE,",
+						"          ADRESSE,",
+						"          VILLE,",
+						"          CODE_POSTAL,",
+						"          PAYS,",
+						"          TELEPHONE,",
+						"          FAX",
+						"     )) ~> sink1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     input(",
+						"          Clientkey as long,",
+						"          CODE_CLIENT as string,",
+						"          SOCIETE as string,",
+						"          ADRESSE as string,",
+						"          VILLE as string,",
+						"          CODE_POSTAL as string,",
+						"          PAYS as string,",
+						"          TELEPHONE as string,",
+						"          FAX as string,",
+						"          StartDate as timestamp,",
+						"          EndDate as timestamp",
+						"     ),",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:true,",
+						"     upsertable:false,",
+						"     keys:['CODE_CLIENT'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          CODE_CLIENT,",
+						"          SOCIETE,",
+						"          ADRESSE,",
+						"          VILLE,",
+						"          CODE_POSTAL,",
+						"          PAYS,",
+						"          TELEPHONE,",
+						"          FAX",
+						"     )) ~> sink2"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/clients')]",
+				"[concat(variables('factoryId'), '/datasets/dimclients')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/products')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "categories",
+								"type": "DatasetReference"
+							},
+							"name": "categories"
+						},
+						{
+							"dataset": {
+								"referenceName": "Fournisseurs",
+								"type": "DatasetReference"
+							},
+							"name": "fournisseur"
+						},
+						{
+							"dataset": {
+								"referenceName": "products",
+								"type": "DatasetReference"
+							},
+							"name": "products"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DimProducts",
+								"type": "DatasetReference"
+							},
+							"name": "sink1"
+						}
+					],
+					"transformations": [
+						{
+							"name": "joincat"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "joinfout"
+						},
+						{
+							"name": "select2"
+						},
+						{
+							"name": "surrogateKey1"
+						},
+						{
+							"name": "alterRow1"
+						}
+					],
+					"scriptLines": [
+						"source(output(",
+						"          CODE_CATEGORIE as decimal(6,0),",
+						"          NOM_CATEGORIE as string,",
+						"          DESCRIPTION as string,",
+						"          Last_Mod as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     enableCdc: true,",
+						"     mode: 'read',",
+						"     skipInitialLoad: false,",
+						"     waterMarkColumn: 'Last_Mod',",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> categories",
+						"source(output(",
+						"          NO_FOURNISSEUR as decimal(6,0),",
+						"          SOCIETE as string,",
+						"          ADRESSE as string,",
+						"          VILLE as string,",
+						"          CODE_POSTAL as string,",
+						"          PAYS as string,",
+						"          TELEPHONE as string,",
+						"          FAX as string,",
+						"          Last_Mod as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     enableCdc: true,",
+						"     mode: 'read',",
+						"     skipInitialLoad: false,",
+						"     waterMarkColumn: 'Last_Mod',",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> fournisseur",
+						"source(output(",
+						"          REF_PRODUIT as decimal(6,0),",
+						"          NOM_PRODUIT as string,",
+						"          NO_FOURNISSEUR as decimal(6,0),",
+						"          CODE_CATEGORIE as decimal(6,0),",
+						"          QUANTITE as string,",
+						"          PRIX_UNITAIRE as decimal(8,2),",
+						"          UNITES_STOCK as decimal(5,0),",
+						"          UNITES_COMMANDEES as decimal(5,0),",
+						"          INDISPONIBLE as decimal(1,0),",
+						"          Last_Mod as timestamp",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     enableCdc: true,",
+						"     mode: 'read',",
+						"     skipInitialLoad: false,",
+						"     waterMarkColumn: 'Last_Mod',",
+						"     isolationLevel: 'READ_UNCOMMITTED',",
+						"     format: 'table') ~> products",
+						"products, categories join(products@CODE_CATEGORIE == categories@CODE_CATEGORIE,",
+						"     joinType:'inner',",
+						"     broadcast: 'auto')~> joincat",
+						"joincat select(mapColumn(",
+						"          REF_PRODUIT,",
+						"          NOM_PRODUIT,",
+						"          NO_FOURNISSEUR,",
+						"          QUANTITE,",
+						"          PRIX_UNITAIRE,",
+						"          UNITES_STOCK,",
+						"          UNITES_COMMANDEES,",
+						"          CODE_CATEGORIE = categories@CODE_CATEGORIE,",
+						"          NOM_CATEGORIE",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select1",
+						"select1, fournisseur join(select1@NO_FOURNISSEUR == fournisseur@NO_FOURNISSEUR,",
+						"     joinType:'inner',",
+						"     broadcast: 'auto')~> joinfout",
+						"joinfout select(mapColumn(",
+						"          REF_PRODUIT,",
+						"          NOM_PRODUIT,",
+						"          QUANTITE,",
+						"          PRIX_UNITAIRE,",
+						"          UNITES_STOCK,",
+						"          UNITES_COMMANDEES,",
+						"          CODE_CATEGORIE,",
+						"          NOM_CATEGORIE,",
+						"          NO_FOURNISSEUR = fournisseur@NO_FOURNISSEUR,",
+						"          SOCIETE,",
+						"          VILLE,",
+						"          PAYS",
+						"     ),",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true) ~> select2",
+						"select2 keyGenerate(output(ProKey as long),",
+						"     startAt: 1L) ~> surrogateKey1",
+						"surrogateKey1 alterRow(upsertIf(1==1)) ~> alterRow1",
+						"alterRow1 sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     deletable:false,",
+						"     insertable:false,",
+						"     updateable:false,",
+						"     upsertable:true,",
+						"     keys:['REF_PRODUIT'],",
+						"     format: 'table',",
+						"     skipDuplicateMapInputs: true,",
+						"     skipDuplicateMapOutputs: true,",
+						"     errorHandlingOption: 'stopOnFirstError',",
+						"     mapColumn(",
+						"          REF_PRODUIT,",
+						"          NOM_PRODUIT,",
+						"          QUANTITE,",
+						"          PRIX_UNITAIRE,",
+						"          UNITES_STOCK,",
+						"          UNITES_COMMANDEES,",
+						"          CODE_CATEGORIE,",
+						"          NOM_CATEGORIE,",
+						"          NO_FOURNISSEUR,",
+						"          SOCIETE_FOURNISSEUR = SOCIETE,",
+						"          PAYS_FOURNISSEUR = PAYS,",
+						"          ProKey",
+						"     )) ~> sink1"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/categories')]",
+				"[concat(variables('factoryId'), '/datasets/Fournisseurs')]",
+				"[concat(variables('factoryId'), '/datasets/products')]",
+				"[concat(variables('factoryId'), '/datasets/DimProducts')]"
+			]
+		}
+	]
+}
