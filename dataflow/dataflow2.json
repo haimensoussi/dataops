@@ -9,7 +9,7 @@
 						"referenceName": "Emplo",
 						"type": "DatasetReference"
 					},
-					"name": "Emplo"
+					"name": "source1"
 				}
 			],
 			"sinks": [
@@ -19,13 +19,6 @@
 						"type": "DatasetReference"
 					},
 					"name": "sink1"
-				},
-				{
-					"dataset": {
-						"referenceName": "dimemplo",
-						"type": "DatasetReference"
-					},
-					"name": "dimeplo"
 				}
 			],
 			"transformations": [
@@ -40,9 +33,6 @@
 				},
 				{
 					"name": "select1"
-				},
-				{
-					"name": "update"
 				}
 			],
 			"scriptLines": [
@@ -60,13 +50,10 @@
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     enableCdc: true,",
-				"     mode: 'read',",
-				"     skipInitialLoad: false,",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
-				"     format: 'table') ~> Emplo",
-				"select1 alterRow(insertIf(1==1)) ~> Insert",
-				"Emplo keyGenerate(output(KeyId as long),",
+				"     format: 'table') ~> source1",
+				"select1 alterRow(upsertIf(1==1)) ~> Insert",
+				"source1 keyGenerate(output(KeyId as long),",
 				"     startAt: 1L) ~> surrogateKey1",
 				"surrogateKey1 derive(StartDays = DATE_EMBAUCHE,",
 				"          EndDate = DATE_EMBAUCHE-1) ~> derivedColumn1",
@@ -87,7 +74,6 @@
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> select1",
-				"Emplo alterRow(updateIf(1==1)) ~> update",
 				"Insert sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
@@ -106,9 +92,9 @@
 				"          EndDate as timestamp",
 				"     ),",
 				"     deletable:false,",
-				"     insertable:true,",
+				"     insertable:false,",
 				"     updateable:false,",
-				"     upsertable:false,",
+				"     upsertable:true,",
 				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
@@ -127,45 +113,7 @@
 				"          KeyId,",
 				"          StartDays,",
 				"          EndDate",
-				"     )) ~> sink1",
-				"update sink(allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     input(",
-				"          NO_EMPLOYE as decimal(6,0),",
-				"          REND_COMPTE as decimal(6,0),",
-				"          NOM as string,",
-				"          PRENOM as string,",
-				"          FONCTION as string,",
-				"          TITRE as string,",
-				"          DATE_NAISSANCE as timestamp,",
-				"          DATE_EMBAUCHE as timestamp,",
-				"          SALAIRE as decimal(8,2),",
-				"          COMMISSION as decimal(8,2),",
-				"          KeyId as long,",
-				"          StartDays as timestamp,",
-				"          EndDate as timestamp",
-				"     ),",
-				"     deletable:false,",
-				"     insertable:false,",
-				"     updateable:true,",
-				"     upsertable:false,",
-				"     keys:['NO_EMPLOYE'],",
-				"     format: 'table',",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError',",
-				"     mapColumn(",
-				"          NO_EMPLOYE,",
-				"          REND_COMPTE,",
-				"          NOM,",
-				"          PRENOM,",
-				"          FONCTION,",
-				"          TITRE,",
-				"          DATE_NAISSANCE,",
-				"          DATE_EMBAUCHE,",
-				"          SALAIRE,",
-				"          COMMISSION",
-				"     )) ~> dimeplo"
+				"     )) ~> sink1"
 			]
 		}
 	}
