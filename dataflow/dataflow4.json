@@ -24,6 +24,9 @@
 			"transformations": [
 				{
 					"name": "alterRow1"
+				},
+				{
+					"name": "surrogateKey1"
 				}
 			],
 			"scriptLines": [
@@ -48,7 +51,9 @@
 				"     waterMarkColumn: 'Last_Mod',",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> source1",
-				"source1 alterRow(insertIf(1==1)) ~> alterRow1",
+				"surrogateKey1 alterRow(insertIf(1==1)) ~> alterRow1",
+				"source1 keyGenerate(output(KeyId as long),",
+				"     startAt: 1L) ~> surrogateKey1",
 				"alterRow1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     input(",
@@ -84,7 +89,8 @@
 				"          DATE_NAISSANCE,",
 				"          DATE_EMBAUCHE,",
 				"          SALAIRE,",
-				"          COMMISSION",
+				"          COMMISSION,",
+				"          KeyId",
 				"     )) ~> sink1"
 			]
 		}
