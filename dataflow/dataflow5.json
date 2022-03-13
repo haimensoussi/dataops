@@ -69,7 +69,7 @@
 				"     validateSchema: false,",
 				"     enableCdc: true,",
 				"     mode: 'read',",
-				"     skipInitialLoad: false,",
+				"     skipInitialLoad: true,",
 				"     waterMarkColumn: 'Last_Mod',",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> product",
