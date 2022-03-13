@@ -106,6 +106,7 @@
 				"     enableCdc: true,",
 				"     mode: 'read',",
 				"     skipInitialLoad: false,",
+				"     waterMarkColumn: 'Last_Mod',",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> fournisseur",
 				"products, categories join(products@CODE_CATEGORIE == categories@CODE_CATEGORIE,",
