@@ -6,13 +6,6 @@
 			"sources": [
 				{
 					"dataset": {
-						"referenceName": "products",
-						"type": "DatasetReference"
-					},
-					"name": "products"
-				},
-				{
-					"dataset": {
 						"referenceName": "categories",
 						"type": "DatasetReference"
 					},
@@ -24,6 +17,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "fournisseur"
+				},
+				{
+					"dataset": {
+						"referenceName": "products",
+						"type": "DatasetReference"
+					},
+					"name": "products"
 				}
 			],
 			"sinks": [
@@ -57,26 +57,6 @@
 			],
 			"scriptLines": [
 				"source(output(",
-				"          REF_PRODUIT as decimal(6,0),",
-				"          NOM_PRODUIT as string,",
-				"          NO_FOURNISSEUR as decimal(6,0),",
-				"          CODE_CATEGORIE as decimal(6,0),",
-				"          QUANTITE as string,",
-				"          PRIX_UNITAIRE as decimal(8,2),",
-				"          UNITES_STOCK as decimal(5,0),",
-				"          UNITES_COMMANDEES as decimal(5,0),",
-				"          INDISPONIBLE as decimal(1,0),",
-				"          Last_Mod as timestamp",
-				"     ),",
-				"     allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     enableCdc: true,",
-				"     mode: 'read',",
-				"     skipInitialLoad: false,",
-				"     waterMarkColumn: 'Last_Mod',",
-				"     isolationLevel: 'READ_UNCOMMITTED',",
-				"     format: 'table') ~> products",
-				"source(output(",
 				"          CODE_CATEGORIE as decimal(6,0),",
 				"          NOM_CATEGORIE as string,",
 				"          DESCRIPTION as string,",
@@ -109,6 +89,26 @@
 				"     waterMarkColumn: 'Last_Mod',",
 				"     isolationLevel: 'READ_UNCOMMITTED',",
 				"     format: 'table') ~> fournisseur",
+				"source(output(",
+				"          REF_PRODUIT as decimal(6,0),",
+				"          NOM_PRODUIT as string,",
+				"          NO_FOURNISSEUR as decimal(6,0),",
+				"          CODE_CATEGORIE as decimal(6,0),",
+				"          QUANTITE as string,",
+				"          PRIX_UNITAIRE as decimal(8,2),",
+				"          UNITES_STOCK as decimal(5,0),",
+				"          UNITES_COMMANDEES as decimal(5,0),",
+				"          INDISPONIBLE as decimal(1,0),",
+				"          Last_Mod as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     enableCdc: true,",
+				"     mode: 'read',",
+				"     skipInitialLoad: false,",
+				"     waterMarkColumn: 'Last_Mod',",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> products",
 				"products, categories join(products@CODE_CATEGORIE == categories@CODE_CATEGORIE,",
 				"     joinType:'inner',",
 				"     broadcast: 'auto')~> joincat",
