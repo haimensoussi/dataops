@@ -13,7 +13,7 @@
 						]
 					},
 					{
-						"activity": "maxidclient",
+						"activity": "maxidemplo",
 						"dependencyConditions": [
 							"Succeeded"
 						]
@@ -65,7 +65,7 @@
 				}
 			},
 			{
-				"name": "maxidclient",
+				"name": "maxidemplo",
 				"type": "Lookup",
 				"dependsOn": [],
 				"policy": {
@@ -79,12 +79,12 @@
 				"typeProperties": {
 					"source": {
 						"type": "AzureSqlSource",
-						"sqlReaderQuery": "select max(RefClient) as maxref from [dbo].[CLIENTS]",
+						"sqlReaderQuery": "select max([NO_EMPLOYE]) as maxrefemplo from [dbo].[EMPLOYES]",
 						"queryTimeout": "02:00:00",
 						"partitionOption": "None"
 					},
 					"dataset": {
-						"referenceName": "clients",
+						"referenceName": "Emplo",
 						"type": "DatasetReference"
 					}
 				}
