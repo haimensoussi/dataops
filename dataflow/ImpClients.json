@@ -1,0 +1,93 @@
+{
+	"name": "ImpClients",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "clients",
+						"type": "DatasetReference"
+					},
+					"name": "clients"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "dimclients",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "surrogateKey1"
+				},
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          CODE_CLIENT as string,",
+				"          SOCIETE as string,",
+				"          ADRESSE as string,",
+				"          VILLE as string,",
+				"          CODE_POSTAL as string,",
+				"          PAYS as string,",
+				"          TELEPHONE as string,",
+				"          FAX as string,",
+				"          RefClient as integer,",
+				"          Last_Mod as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     enableCdc: true,",
+				"     mode: 'read',",
+				"     skipInitialLoad: false,",
+				"     waterMarkColumn: 'Last_Mod',",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> clients",
+				"clients keyGenerate(output(ClientKey as long),",
+				"     startAt: 1L) ~> surrogateKey1",
+				"surrogateKey1 alterRow(upsertIf(1==1)) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     input(",
+				"          Clientkey as long,",
+				"          CODE_CLIENT as string,",
+				"          SOCIETE as string,",
+				"          ADRESSE as string,",
+				"          VILLE as string,",
+				"          CODE_POSTAL as string,",
+				"          PAYS as string,",
+				"          TELEPHONE as string,",
+				"          FAX as string,",
+				"          StartDate as timestamp,",
+				"          EndDate as timestamp",
+				"     ),",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:false,",
+				"     upsertable:true,",
+				"     keys:['CODE_CLIENT'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          CODE_CLIENT,",
+				"          SOCIETE,",
+				"          ADRESSE,",
+				"          VILLE,",
+				"          CODE_POSTAL,",
+				"          PAYS,",
+				"          TELEPHONE,",
+				"          FAX",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
