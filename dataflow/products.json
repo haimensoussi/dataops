@@ -29,7 +29,7 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "DIMPROD",
+						"referenceName": "DimProducts",
 						"type": "DatasetReference"
 					},
 					"name": "sink1"
@@ -164,9 +164,8 @@
 				"          CODE_CATEGORIE,",
 				"          NOM_CATEGORIE,",
 				"          NO_FOURNISSEUR,",
-				"          SOCIETE,",
-				"          VILLE,",
-				"          PAYS,",
+				"          SOCIETE_FOURNISSEUR = SOCIETE,",
+				"          PAYS_FOURNISSEUR = PAYS,",
 				"          ProKey",
 				"     )) ~> sink1"
 			]
