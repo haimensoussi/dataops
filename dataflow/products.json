@@ -1,0 +1,175 @@
+{
+	"name": "products",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "products",
+						"type": "DatasetReference"
+					},
+					"name": "products"
+				},
+				{
+					"dataset": {
+						"referenceName": "categories",
+						"type": "DatasetReference"
+					},
+					"name": "categories"
+				},
+				{
+					"dataset": {
+						"referenceName": "Fournisseurs",
+						"type": "DatasetReference"
+					},
+					"name": "fournisseur"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DimProducts",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "joincat"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "joinfout"
+				},
+				{
+					"name": "select2"
+				},
+				{
+					"name": "surrogateKey1"
+				},
+				{
+					"name": "alterRow1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          REF_PRODUIT as decimal(6,0),",
+				"          NOM_PRODUIT as string,",
+				"          NO_FOURNISSEUR as decimal(6,0),",
+				"          CODE_CATEGORIE as decimal(6,0),",
+				"          QUANTITE as string,",
+				"          PRIX_UNITAIRE as decimal(8,2),",
+				"          UNITES_STOCK as decimal(5,0),",
+				"          UNITES_COMMANDEES as decimal(5,0),",
+				"          INDISPONIBLE as decimal(1,0),",
+				"          Last_Mod as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     enableCdc: true,",
+				"     mode: 'read',",
+				"     skipInitialLoad: false,",
+				"     waterMarkColumn: 'Last_Mod',",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> products",
+				"source(output(",
+				"          CODE_CATEGORIE as decimal(6,0),",
+				"          NOM_CATEGORIE as string,",
+				"          DESCRIPTION as string,",
+				"          Last_Mod as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     enableCdc: true,",
+				"     mode: 'read',",
+				"     skipInitialLoad: false,",
+				"     waterMarkColumn: 'Last_Mod',",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> categories",
+				"source(output(",
+				"          NO_FOURNISSEUR as decimal(6,0),",
+				"          SOCIETE as string,",
+				"          ADRESSE as string,",
+				"          VILLE as string,",
+				"          CODE_POSTAL as string,",
+				"          PAYS as string,",
+				"          TELEPHONE as string,",
+				"          FAX as string,",
+				"          Last_Mod as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> fournisseur",
+				"products, categories join(products@CODE_CATEGORIE == categories@CODE_CATEGORIE,",
+				"     joinType:'inner',",
+				"     broadcast: 'auto')~> joincat",
+				"joincat select(mapColumn(",
+				"          REF_PRODUIT,",
+				"          NOM_PRODUIT,",
+				"          NO_FOURNISSEUR,",
+				"          QUANTITE,",
+				"          PRIX_UNITAIRE,",
+				"          UNITES_STOCK,",
+				"          UNITES_COMMANDEES,",
+				"          CODE_CATEGORIE = categories@CODE_CATEGORIE,",
+				"          NOM_CATEGORIE",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1, fournisseur join(select1@NO_FOURNISSEUR == fournisseur@NO_FOURNISSEUR,",
+				"     joinType:'inner',",
+				"     broadcast: 'auto')~> joinfout",
+				"joinfout select(mapColumn(",
+				"          REF_PRODUIT,",
+				"          NOM_PRODUIT,",
+				"          QUANTITE,",
+				"          PRIX_UNITAIRE,",
+				"          UNITES_STOCK,",
+				"          UNITES_COMMANDEES,",
+				"          CODE_CATEGORIE,",
+				"          NOM_CATEGORIE,",
+				"          NO_FOURNISSEUR = fournisseur@NO_FOURNISSEUR,",
+				"          SOCIETE,",
+				"          VILLE,",
+				"          PAYS",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"select2 keyGenerate(output(ProKey as long),",
+				"     startAt: 1L) ~> surrogateKey1",
+				"surrogateKey1 alterRow(upsertIf(1==1)) ~> alterRow1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:false,",
+				"     upsertable:true,",
+				"     keys:['REF_PRODUIT'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          REF_PRODUIT,",
+				"          NOM_PRODUIT,",
+				"          QUANTITE,",
+				"          PRIX_UNITAIRE,",
+				"          UNITES_STOCK,",
+				"          UNITES_COMMANDEES,",
+				"          CODE_CATEGORIE,",
+				"          NOM_CATEGORIE,",
+				"          NO_FOURNISSEUR,",
+				"          SOCIETE,",
+				"          VILLE,",
+				"          PAYS,",
+				"          ProKey",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}
