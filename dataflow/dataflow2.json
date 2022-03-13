@@ -1,0 +1,106 @@
+{
+	"name": "dataflow2",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "Emplo",
+						"type": "DatasetReference"
+					},
+					"name": "Emplo"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "dimemplo",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "alterRow1"
+				},
+				{
+					"name": "surrogateKey1"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "select1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          NO_EMPLOYE as decimal(6,0),",
+				"          REND_COMPTE as decimal(6,0),",
+				"          NOM as string,",
+				"          PRENOM as string,",
+				"          FONCTION as string,",
+				"          TITRE as string,",
+				"          DATE_NAISSANCE as timestamp,",
+				"          DATE_EMBAUCHE as timestamp,",
+				"          SALAIRE as decimal(8,2),",
+				"          COMMISSION as decimal(8,2)",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> Emplo",
+				"select1 alterRow(upsertIf(1==1)) ~> alterRow1",
+				"Emplo keyGenerate(output(KeyId as long),",
+				"     startAt: 1L) ~> surrogateKey1",
+				"surrogateKey1 derive(StartDays = DATE_EMBAUCHE,",
+				"          EndDate = DATE_EMBAUCHE-1) ~> derivedColumn1",
+				"derivedColumn1 select(mapColumn(",
+				"          NO_EMPLOYE,",
+				"          REND_COMPTE,",
+				"          NOM,",
+				"          PRENOM,",
+				"          FONCTION,",
+				"          TITRE,",
+				"          DATE_NAISSANCE,",
+				"          DATE_EMBAUCHE,",
+				"          SALAIRE,",
+				"          COMMISSION,",
+				"          KeyId,",
+				"          StartDays,",
+				"          EndDate",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> select1",
+				"alterRow1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:false,",
+				"     upsertable:true,",
+				"     keys:['NO_EMPLOYE'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          NO_EMPLOYE,",
+				"          REND_COMPTE,",
+				"          NOM,",
+				"          PRENOM,",
+				"          FONCTION,",
+				"          TITRE,",
+				"          DATE_NAISSANCE,",
+				"          DATE_EMBAUCHE,",
+				"          SALAIRE,",
+				"          COMMISSION,",
+				"          KeyId,",
+				"          StartDays,",
+				"          EndDate",
+				"     )) ~> sink1"
+			]
+		}
+	}
+}

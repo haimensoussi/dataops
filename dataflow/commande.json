@@ -1,0 +1,246 @@
+{
+	"name": "commande",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "commande",
+						"type": "DatasetReference"
+					},
+					"name": "commande"
+				},
+				{
+					"dataset": {
+						"referenceName": "detailcomm",
+						"type": "DatasetReference"
+					},
+					"name": "detailcomm"
+				},
+				{
+					"dataset": {
+						"referenceName": "dimclients",
+						"type": "DatasetReference"
+					},
+					"name": "dimclients"
+				},
+				{
+					"dataset": {
+						"referenceName": "dimemplo",
+						"type": "DatasetReference"
+					},
+					"name": "dimemplo"
+				},
+				{
+					"dataset": {
+						"referenceName": "DimProducts",
+						"type": "DatasetReference"
+					},
+					"name": "dimproducts"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "factdw",
+						"type": "DatasetReference"
+					},
+					"name": "factdw"
+				}
+			],
+			"transformations": [
+				{
+					"name": "join1"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "joinclients"
+				},
+				{
+					"name": "select2"
+				},
+				{
+					"name": "joinemplo"
+				},
+				{
+					"name": "select3"
+				},
+				{
+					"name": "joinproducts"
+				},
+				{
+					"name": "select4"
+				},
+				{
+					"name": "alterRow1"
+				},
+				{
+					"name": "surrogateKey1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          NO_COMMANDE as decimal(6,0),",
+				"          CODE_CLIENT as string,",
+				"          NO_EMPLOYE as decimal(6,0),",
+				"          DATE_COMMANDE as timestamp,",
+				"          DATE_ENVOI as timestamp,",
+				"          PORT as decimal(8,2)",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> commande",
+				"source(output(",
+				"          NO_COMMANDE as decimal(6,0),",
+				"          REF_PRODUIT as decimal(6,0),",
+				"          PRIX_UNITAIRE as decimal(8,2),",
+				"          QUANTITE as decimal(5,0),",
+				"          REMISE as double",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> detailcomm",
+				"source(output(",
+				"          Clientkey as long,",
+				"          CODE_CLIENT as string,",
+				"          SOCIETE as string,",
+				"          ADRESSE as string,",
+				"          VILLE as string,",
+				"          CODE_POSTAL as string,",
+				"          PAYS as string,",
+				"          TELEPHONE as string,",
+				"          FAX as string,",
+				"          StartDate as timestamp,",
+				"          EndDate as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> dimclients",
+				"source(output(",
+				"          NO_EMPLOYE as decimal(6,0),",
+				"          REND_COMPTE as decimal(6,0),",
+				"          NOM as string,",
+				"          PRENOM as string,",
+				"          FONCTION as string,",
+				"          TITRE as string,",
+				"          DATE_NAISSANCE as timestamp,",
+				"          DATE_EMBAUCHE as timestamp,",
+				"          SALAIRE as decimal(8,2),",
+				"          COMMISSION as decimal(8,2),",
+				"          KeyId as long,",
+				"          StartDays as timestamp,",
+				"          EndDate as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> dimemplo",
+				"source(output(",
+				"          REF_PRODUIT as decimal(6,0),",
+				"          NOM_PRODUIT as string,",
+				"          QUANTITE as string,",
+				"          PRIX_UNITAIRE as decimal(8,2),",
+				"          UNITES_STOCK as decimal(5,0),",
+				"          UNITES_COMMANDEES as decimal(5,0),",
+				"          CODE_CATEGORIE as decimal(6,0),",
+				"          NOM_CATEGORIE as string,",
+				"          NO_FOURNISSEUR as decimal(6,0),",
+				"          SOCIETE_FOURNISSEUR as string,",
+				"          PAYS_FOURNISSEUR as string,",
+				"          ProKey as long",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     isolationLevel: 'READ_UNCOMMITTED',",
+				"     format: 'table') ~> dimproducts",
+				"commande, detailcomm join(commande@NO_COMMANDE == detailcomm@NO_COMMANDE,",
+				"     joinType:'inner',",
+				"     broadcast: 'auto')~> join1",
+				"join1 select(mapColumn(",
+				"          NO_COMMANDE = commande@NO_COMMANDE,",
+				"          CODE_CLIENT,",
+				"          NO_EMPLOYE,",
+				"          DATE_COMMANDE,",
+				"          REF_PRODUIT,",
+				"          PRIX_UNITAIRE,",
+				"          QUANTITE",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1, dimclients join(select1@CODE_CLIENT == dimclients@CODE_CLIENT,",
+				"     joinType:'inner',",
+				"     broadcast: 'auto')~> joinclients",
+				"joinclients select(mapColumn(",
+				"          NO_COMMANDE,",
+				"          NO_EMPLOYE,",
+				"          DATE_COMMANDE,",
+				"          REF_PRODUIT,",
+				"          PRIX_UNITAIRE,",
+				"          QUANTITE,",
+				"          Clientkey",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select2",
+				"select2, dimemplo join(select2@NO_EMPLOYE == dimemplo@NO_EMPLOYE,",
+				"     joinType:'inner',",
+				"     broadcast: 'auto')~> joinemplo",
+				"joinemplo select(mapColumn(",
+				"          NO_COMMANDE,",
+				"          DATE_COMMANDE,",
+				"          REF_PRODUIT,",
+				"          PRIX_UNITAIRE,",
+				"          QUANTITE,",
+				"          Clientkey,",
+				"          NO_EMPLOYE = dimemplo@NO_EMPLOYE,",
+				"          EmpKey = KeyId",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select3",
+				"select3, dimproducts join(select3@REF_PRODUIT == dimproducts@REF_PRODUIT,",
+				"     joinType:'inner',",
+				"     broadcast: 'auto')~> joinproducts",
+				"joinproducts select(mapColumn(",
+				"          NO_COMMANDE,",
+				"          DATE_COMMANDE,",
+				"          PRIX_UNITAIRE = select3@PRIX_UNITAIRE,",
+				"          QUANTITE = select3@QUANTITE,",
+				"          Clientkey,",
+				"          EmpKey,",
+				"          ProKey",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select4",
+				"select4 alterRow(upsertIf(1==1)) ~> alterRow1",
+				"alterRow1 keyGenerate(output(OrderId as long),",
+				"     startAt: 1L) ~> surrogateKey1",
+				"surrogateKey1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:false,",
+				"     updateable:false,",
+				"     upsertable:true,",
+				"     keys:['OrderId'],",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError',",
+				"     mapColumn(",
+				"          NO_COMMANDE,",
+				"          DATE_COMMANDE,",
+				"          PRIX_UNITAIRE,",
+				"          QUANTITE,",
+				"          Clientkey,",
+				"          EmpKey,",
+				"          ProKey,",
+				"          OrderId",
+				"     )) ~> factdw"
+			]
+		}
+	}
+}

@@ -1,0 +1,83 @@
+{
+	"name": "ImpDw",
+	"properties": {
+		"activities": [
+			{
+				"name": "ImpDimClients",
+				"type": "ExecutePipeline",
+				"dependsOn": [],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "DimClients",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": false
+				}
+			},
+			{
+				"name": "ImplDimProd",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "ImpDimClients",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "dimproducts",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "ImpDimEmplo",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "ImplDimProd",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "DimEmplo",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			},
+			{
+				"name": "ImpFact",
+				"type": "ExecutePipeline",
+				"dependsOn": [
+					{
+						"activity": "ImpDimEmplo",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"pipeline": {
+						"referenceName": "fact",
+						"type": "PipelineReference"
+					},
+					"waitOnCompletion": true
+				}
+			}
+		],
+		"annotations": [],
+		"lastPublishTime": "2022-03-12T18:42:43Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

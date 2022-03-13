@@ -1,0 +1,67 @@
+{
+	"name": "dimclients",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "linktofactdw",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "Clientkey",
+				"type": "bigint",
+				"precision": 19
+			},
+			{
+				"name": "CODE_CLIENT",
+				"type": "char"
+			},
+			{
+				"name": "SOCIETE",
+				"type": "nvarchar"
+			},
+			{
+				"name": "ADRESSE",
+				"type": "nvarchar"
+			},
+			{
+				"name": "VILLE",
+				"type": "varchar"
+			},
+			{
+				"name": "CODE_POSTAL",
+				"type": "varchar"
+			},
+			{
+				"name": "PAYS",
+				"type": "varchar"
+			},
+			{
+				"name": "TELEPHONE",
+				"type": "varchar"
+			},
+			{
+				"name": "FAX",
+				"type": "varchar"
+			},
+			{
+				"name": "StartDate",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "EndDate",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "CLIENTS"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

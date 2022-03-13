@@ -1,0 +1,17 @@
+{
+	"name": "DimProducts",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "linktofactdw",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "DimProducts"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

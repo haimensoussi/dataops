@@ -1,0 +1,9 @@
+{
+	"name": "myadfgetdata",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "194a2625-2973-4a05-b1e0-e14de71b9d66",
+		"tenantId": "58e9673c-cc35-4e8d-830b-1bce4d152339"
+	}
+}

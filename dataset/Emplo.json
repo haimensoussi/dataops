@@ -1,0 +1,70 @@
+{
+	"name": "Emplo",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureSqlDatabase1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": [
+			{
+				"name": "NO_EMPLOYE",
+				"type": "decimal",
+				"precision": 6,
+				"scale": 0
+			},
+			{
+				"name": "REND_COMPTE",
+				"type": "decimal",
+				"precision": 6,
+				"scale": 0
+			},
+			{
+				"name": "NOM",
+				"type": "nvarchar"
+			},
+			{
+				"name": "PRENOM",
+				"type": "nvarchar"
+			},
+			{
+				"name": "FONCTION",
+				"type": "varchar"
+			},
+			{
+				"name": "TITRE",
+				"type": "varchar"
+			},
+			{
+				"name": "DATE_NAISSANCE",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "DATE_EMBAUCHE",
+				"type": "datetime",
+				"precision": 23,
+				"scale": 3
+			},
+			{
+				"name": "SALAIRE",
+				"type": "decimal",
+				"precision": 8,
+				"scale": 2
+			},
+			{
+				"name": "COMMISSION",
+				"type": "decimal",
+				"precision": 8,
+				"scale": 2
+			}
+		],
+		"typeProperties": {
+			"schema": "dbo",
+			"table": "EMPLOYES"
+		}
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}
